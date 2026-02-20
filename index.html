@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tessera Punti + Admin Panel</title>
+    <title>Tessera Punti Digitale con Barcode</title>
 
     <!-- Libreria Barcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -12,40 +11,46 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            padding: 20px;
             text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
         }
         .container {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
             width: 90%;
-            max-width: 500px;
+            max-width: 450px;
             margin: auto;
         }
-        input, button, select {
+        input, button {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            border-radius: 5px;
             border: 1px solid #ccc;
+            border-radius: 5px;
             font-size: 16px;
         }
         button {
             background: #007BFF;
             color: white;
-            border: none;
             cursor: pointer;
+            border: none;
         }
         button:hover {
             background: #0056b3;
+        }
+        #punti, #conto-alla-rovescia {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
         }
         table {
             width: 100%;
             margin-top: 20px;
             border-collapse: collapse;
+            background: white;
         }
         th, td {
             padding: 10px;
@@ -58,251 +63,78 @@
         #barcode {
             margin-top: 20px;
         }
-        .admin-btn {
-            background: #28a745;
-        }
-        .delete-btn {
-            background: #dc3545;
-        }
     </style>
 </head>
 
 <body>
 
-<!-- ============================
-     SEZIONE LOGIN ADMIN
-============================ -->
-<div class="container" id="admin-login">
-    <h2>Accesso Admin</h2>
-    <input type="password" id="admin-pass" placeholder="Password Admin">
-    <button onclick="loginAdmin()">Entra</button>
-</div>
+<div class="container">
+    <h2>Tessera Punti Digitale</h2>
+    
+    <div id="registrazione">
+        <p>Registrati per iniziare</p>
+        <input type="text" id="nome" placeholder="Nome e Cognome">
+        <button onclick="salvaNome()">Salva</button>
+    </div>
 
-<!-- ============================
-     PANNELLO ADMIN
-============================ -->
-<div class="container" id="admin-panel" style="display:none;">
-    <h2>Gestione Clienti</h2>
+    <div id="tessera" style="display: none;">
+        <h3>Benvenuto, <span id="nome-salvato"></span>!</h3>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>ID</th>
-                <th>Punti</th>
-                <th>Azioni</th>
-            </tr>
-        </thead>
-        <tbody id="admin-lista"></tbody>
-    </table>
+        <h3>ID Tessera</h3>
+        <p id="id-tessera"></p>
 
-    <button onclick="logoutAdmin()" class="delete-btn">Esci</button>
-</div>
+        <svg id="barcode"></svg>
 
-<!-- ============================
-     TESSERA CLIENTE
-============================ -->
-<div class="container" id="tessera" style="display:none;">
-    <h2>Tessera Punti</h2>
+        <h3>Punti Accumulati</h3>
+        <p id="punti">0</p>
 
-    <h3>Benvenuto, <span id="nome-salvato"></span></h3>
-    <h3>ID Tessera</h3>
-    <p id="id-tessera"></p>
+        <h3>Inserisci il Codice Segreto</h3>
+        <input type="text" id="codice" placeholder="Inserisci codice">
+        <button onclick="aggiungiPunto()">Aggiungi Punto</button>
 
-    <svg id="barcode"></svg>
+        <h3>Tempo Rimanente</h3>
+        <p id="conto-alla-rovescia">N/A</p>
 
-    <h3>Punti</h3>
-    <p id="punti">0</p>
-
-    <h3>Codice Segreto</h3>
-    <input type="text" id="codice" placeholder="Inserisci codice">
-    <button onclick="aggiungiPunto()">Aggiungi Punto</button>
-
-    <h3>Storico</h3>
-    <table>
-        <thead>
-            <tr><th>Punti</th><th>Data</th></tr>
-        </thead>
-        <tbody id="storico-punti"></tbody>
-    </table>
-
-    <button onclick="mostraAdmin()" class="admin-btn">Area Admin</button>
+        <h3>Storico Punti</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Punti</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody id="storico-punti"></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
-/* ============================
-   CONFIG
-============================ */
-const codiceSegreto = "060471";
-const codiceReset = "finepromo";
-const adminPassword = "admin123";
+    const codiceSegreto = "060471";
+    const codiceReset = "finepromo";
 
-/* ============================
-   GENERA ID UNIVOCO
-============================ */
-function generaID() {
-    return "C-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-}
-
-/* ============================
-   LOGIN ADMIN
-============================ */
-function loginAdmin() {
-    let pass = document.getElementById("admin-pass").value;
-    if (pass === adminPassword) {
-        document.getElementById("admin-login").style.display = "none";
-        document.getElementById("admin-panel").style.display = "block";
-        caricaAdmin();
-    } else {
-        alert("Password errata");
-    }
-}
-
-function logoutAdmin() {
-    document.getElementById("admin-panel").style.display = "none";
-    document.getElementById("admin-login").style.display = "block";
-}
-
-/* ============================
-   CARICA LISTA CLIENTI
-============================ */
-function caricaAdmin() {
-    let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
-    let tab = document.getElementById("admin-lista");
-    tab.innerHTML = "";
-
-    lista.forEach((c, i) => {
-        let r = document.createElement("tr");
-        r.innerHTML = `
-            <td>${c.nome}</td>
-            <td>${c.id}</td>
-            <td>${c.punti}</td>
-            <td>
-                <button onclick="adminAggiungi(${i})">+1</button>
-                <button onclick="adminReset(${i})" class="delete-btn">Reset</button>
-                <button onclick="apriTessera('${c.id}')" class="admin-btn">Apri</button>
-                <button onclick="adminElimina(${i})" class="delete-btn">X</button>
-            </td>
-        `;
-        tab.appendChild(r);
-    });
-}
-
-/* ============================
-   FUNZIONI ADMIN
-============================ */
-function adminAggiungi(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    lista[i].punti++;
-    salvaClienti(lista);
-    caricaAdmin();
-}
-
-function adminReset(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    lista[i].punti = 0;
-    lista[i].storico = [];
-    salvaClienti(lista);
-    caricaAdmin();
-}
-
-function adminElimina(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    if (confirm("Eliminare questo cliente?")) {
-        lista.splice(i, 1);
-        salvaClienti(lista);
-        caricaAdmin();
-    }
-}
-
-function salvaClienti(lista) {
-    localStorage.setItem("clienti", JSON.stringify(lista));
-}
-
-/* ============================
-   APRI TESSERA CLIENTE
-============================ */
-function apriTessera(id) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    let cliente = lista.find(c => c.id === id);
-
-    if (!cliente) return;
-
-    document.getElementById("admin-panel").style.display = "none";
-    document.getElementById("tessera").style.display = "block";
-
-    document.getElementById("nome-salvato").textContent = cliente.nome;
-    document.getElementById("id-tessera").textContent = cliente.id;
-    document.getElementById("punti").textContent = cliente.punti;
-
-    JsBarcode("#barcode", cliente.id, {
-        format: "code128",
-        lineColor: "#000",
-        width: 2,
-        height: 60,
-        displayValue: true
-    });
-
-    caricaStoricoCliente(cliente);
-}
-
-/* ============================
-   CARICA STORICO
-============================ */
-function caricaStoricoCliente(cliente) {
-    let tab = document.getElementById("storico-punti");
-    tab.innerHTML = "";
-
-    cliente.storico.forEach(s => {
-        let r = document.createElement("tr");
-        r.innerHTML = `<td>${s.punti}</td><td>${s.data}</td>`;
-        tab.appendChild(r);
-    });
-}
-
-/* ============================
-   AGGIUNGI PUNTO (CLIENTE)
-============================ */
-function aggiungiPunto() {
-    let codice = document.getElementById("codice").value.trim();
-    let id = document.getElementById("id-tessera").textContent;
-
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    let cliente = lista.find(c => c.id === id);
-
-    if (!cliente) return;
-
-    if (codice === codiceSegreto) {
-        cliente.punti++;
-        cliente.storico.push({ punti: 1, data: new Date().toLocaleString() });
-
-        salvaClienti(lista);
-        apriTessera(id);
-
-        alert("Punto aggiunto!");
-
-    } else if (codice === codiceReset) {
-        cliente.punti = 0;
-        cliente.storico = [];
-        salvaClienti(lista);
-        apriTessera(id);
-        alert("Reset effettuato");
-
-    } else {
-        alert("Codice errato");
+    // Generatore ID univoco professionale
+    function generaID() {
+        return "C-" + Math.random().toString(36).substring(2, 10).toUpperCase();
     }
 
-    document.getElementById("codice").value = "";
-}
+    document.addEventListener("DOMContentLoaded", function () {
+        let nomeSalvato = localStorage.getItem("nome");
+        let idTessera = localStorage.getItem("idTessera");
 
-/* ============================
-   MOSTRA ADMIN
-============================ */
-function mostraAdmin() {
-    document.getElementById("tessera").style.display = "none";
-    document.getElementById("admin-login").style.display = "block";
-}
-</script>
+        if (nomeSalvato && idTessera) {
+            document.getElementById("registrazione").style.display = "none";
+            document.getElementById("tessera").style.display = "block";
+            document.getElementById("nome-salvato").textContent = nomeSalvato;
+            document.getElementById("id-tessera").textContent = idTessera;
+            generaBarcode(idTessera);
+        }
 
-</body>
-</html>
+        if (localStorage.getItem("punti")) {
+            document.getElementById("punti").textContent = localStorage.getItem("punti");
+        }
+        
+        caricaStorico();
+        aggiornaContoAllaRovescia();
+    });
+
+    function salvaNome
