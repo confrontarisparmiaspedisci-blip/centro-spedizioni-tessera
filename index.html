@@ -170,7 +170,8 @@
         document.getElementById("nome-salvato").textContent = cliente.nome;
         document.getElementById("id-tessera").textContent = cliente.idOffuscato;
 
-        generaBarcode(cliente.link);
+        // 🔵 Barcode: contiene il LINK, ma sotto mostriamo solo l’ID
+        generaBarcode(cliente.link, cliente.idOffuscato);
 
         document.getElementById("punti").textContent = cliente.punti || 0;
 
@@ -199,17 +200,22 @@
 
         salvaClienteInAdmin(cliente);
 
+        // Reindirizza subito alla sua tessera (link unico)
         window.location.href = link;
     }
 
-    function generaBarcode(link) {
+    // 🔵 NUOVA VERSIONE: il barcode usa il link, ma il testo sotto è l’ID
+    function generaBarcode(link, idOffuscato) {
         JsBarcode("#barcode", link, {
             format: "code128",
             lineColor: "#000",
             width: 2,
             height: 60,
-            displayValue: true
+            displayValue: false   // NON mostra il link sotto il barcode
         });
+
+        // Sotto il barcode mostriamo solo l’ID tessera
+        document.getElementById("id-tessera").textContent = idOffuscato;
     }
 
     function aggiungiPunto() {
