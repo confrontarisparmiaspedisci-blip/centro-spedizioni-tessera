@@ -97,10 +97,11 @@
 
     <p id="id-tessera" style="font-size: 22px; font-weight: bold; margin-top: 10px;"></p>
 
+    <h3>ID Tessera: <span id="id-tessera-top"></span></h3>
+
     <h3>Punti Accumulati</h3>
     <p id="punti">0</p>
 
-    <h3>Inserisci il Codice Segreto</h3>
     <input type="text" id="codice" placeholder="Inserisci codice">
     <button onclick="aggiungiPunto()">Aggiungi Punto</button>
 
@@ -192,7 +193,10 @@
 
         document.getElementById("nome-salvato").textContent = cliente.nome;
         document.getElementById("cognome-salvato").textContent = cliente.cognome;
+
         document.getElementById("id-tessera").textContent = cliente.id;
+        document.getElementById("id-tessera-top").textContent = cliente.id;
+
         document.getElementById("punti").textContent = cliente.punti;
 
         caricaStorico(cliente);
