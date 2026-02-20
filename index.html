@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tessera Punti Digitale con Barcode</title>
+    <title>Tessera Punti Digitale</title>
 
     <!-- Libreria Barcode -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -126,8 +126,9 @@
         return params.get(name);
     }
 
+    // 🔵 ID OFFUSCATO DI 5 CARATTERI
     function generaIDOffuscato() {
-        return Math.random().toString(36).substring(2, 10) + Date.now().toString(36).substring(4);
+        return Math.random().toString(36).substring(2, 7);
     }
 
     function generaLinkTessera(idOffuscato) {
@@ -170,7 +171,7 @@
         document.getElementById("nome-salvato").textContent = cliente.nome;
         document.getElementById("id-tessera").textContent = cliente.idOffuscato;
 
-        // 🔵 Barcode: contiene il LINK, ma sotto mostriamo solo l’ID
+        // Barcode con link, ma sotto mostriamo solo l’ID
         generaBarcode(cliente.link, cliente.idOffuscato);
 
         document.getElementById("punti").textContent = cliente.punti || 0;
@@ -200,21 +201,19 @@
 
         salvaClienteInAdmin(cliente);
 
-        // Reindirizza subito alla sua tessera (link unico)
         window.location.href = link;
     }
 
-    // 🔵 NUOVA VERSIONE: il barcode usa il link, ma il testo sotto è l’ID
+    // 🔵 Barcode SENZA testo sotto, e ID mostrato separatamente
     function generaBarcode(link, idOffuscato) {
         JsBarcode("#barcode", link, {
             format: "code128",
             lineColor: "#000",
             width: 2,
             height: 60,
-            displayValue: false   // NON mostra il link sotto il barcode
+            displayValue: false
         });
 
-        // Sotto il barcode mostriamo solo l’ID tessera
         document.getElementById("id-tessera").textContent = idOffuscato;
     }
 
