@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Area Admin</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 500px;
+            margin: auto;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background: #007BFF;
+            color: white;
+        }
+        .delete-btn {
+            background: #dc3545;
+        }
+        .admin-btn {
+            background: #28a745;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container" id="admin-login">
+    <h2>Accesso Admin</h2>
+    <input type="password" id="admin-pass" placeholder="Password Admin">
+    <button onclick="loginAdmin()">Entra</button>
+</div>
+
+<div class="container" id="admin-panel" style="display:none;">
+    <h2>Gestione Clienti</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>ID</th>
+                <th>Punti</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody id="admin-lista"></tbody>
+    </table>
+
+    <button onclick="logoutAdmin()" class="delete-btn">Esci</button>
+</div>
+
+<script>
+const adminPassword = "admin123";
+
+function loginAdmin() {
+    let pass = document.getElementById("admin-pass").value;
+    if (pass === adminPassword) {
+        document.getElementById("admin-login").style.display = "none";
+        document.getElementById("admin-panel").style.display = "block";
+        caricaAdmin();
+    } else {
+        alert("Password errata");
+    }
+}
+
+function logoutAdmin() {
+    document.getElementById("admin-panel").style.display = "none";
+    document.getElementById("admin-login").style.display = "block";
+}
+
+function caricaAdmin() {
+    let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
+    let tab = document.getElementById("admin-lista");
+    tab.innerHTML = "";
+
+    lista.forEach((c, i) => {
+        let r = document.createElement("tr");
+        r.innerHTML = `
+            <td>${c.nome}</td>
+            <td>${c.id}</td>
+            <td>${c.punti}</td>
+            <td>
+                <button onclick="adminAggiungi(${i})">+1</button>
+                <button onclick="adminReset(${i})" class="delete-btn">Reset</button>
+                <button onclick="adminElimina(${i})" class="delete-btn">X</button>
+            </td>
+        `;
+        tab.appendChild(r);
+    });
+}
+
+function adminAggiungi(i) {
+    let lista = JSON.parse(localStorage.getItem("clienti"));
+    lista[i].punti++;
+    salvaClienti(lista);
+    caricaAdmin();
+}
+
+function adminReset(i) {
+    let lista = JSON.parse(localStorage.getItem("clienti"));
+    lista[i].punti = 0;
+    lista[i].storico = [];
+    salvaClienti(lista);
+    caricaAdmin();
+}
+
+function adminElimina(i) {
+    let lista = JSON.parse(localStorage.getItem("clienti"));
+    if (confirm("Eliminare questo cliente?")) {
+        lista.splice(i, 1);
+        salvaClienti(lista);
+        caricaAdmin();
+    }
+}
+
+function salvaClienti(lista) {
+    localStorage.setItem("clienti", JSON.stringify(lista));
+}
+</script>
+
+</body>
+</html>
