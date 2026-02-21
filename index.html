@@ -101,7 +101,7 @@
     <input type="text" id="nome" placeholder="Nome">
     <input type="text" id="cognome" placeholder="Cognome">
 
-    <button onclick="salvaNuovaTessera()">Crea Tessera</button>
+    <button onclick="creaNuovaTessera()">Crea Tessera</button>
     <button onclick="tornaMenu()">Indietro</button>
 </div>
 
@@ -128,9 +128,6 @@
     <input type="text" id="codice" placeholder="Inserisci codice segreto">
     <button onclick="aggiungiPunto()">Aggiungi Punto</button>
 
-    <h3>Tempo Rimanente</h3>
-    <p id="conto-alla-rovescia">N/A</p>
-
     <h3>Storico Punti</h3>
     <table>
         <thead>
@@ -147,13 +144,28 @@
     <button onclick="tornaMenu()">Esci</button>
 </div>
 
-<script>
-    const codiceSegreto = "060471";
-    const codiceReset = "finepromo";
+<!-- FIREBASE + FIRESTORE -->
+<script type="module">
 
-    function generaID() {
-        return Math.random().toString(36).substring(2, 7);
-    }
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, doc, setDoc, getDoc, updateDoc, arrayUnion, increment 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
+        authDomain: "tessera-punti.firebaseapp.com",
+        projectId: "tessera-punti",
+        storageBucket: "tessera-punti.firebasestorage.app",
+        messagingSenderId: "1093156020505",
+        appId: "1:1093156020505:web:1a693de1df1cd6eef92588",
+        measurementId: "G-0STSVW8R8P"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const codiceSegreto = "060471";
 
     function tornaMenu() {
         document.querySelectorAll(".container").forEach(c => c.style.display = "none");
@@ -170,97 +182,82 @@
         document.getElementById("accesso").style.display = "block";
     }
 
-    function salvaNuovaTessera() {
+    // CREA TESSERA SU FIRESTORE
+    async function creaNuovaTessera() {
         let nome = document.getElementById("nome").value.trim();
         let cognome = document.getElementById("cognome").value.trim();
 
-        if (nome === "" && cognome === "") {
-            alert("Inserisci almeno Nome o Cognome");
-            return;
-        }
+        const ref = doc(collection(db, "clienti"));
 
-        const id = generaID();
-
-        const cliente = {
+        await setDoc(ref, {
             nome: nome,
             cognome: cognome,
-            id: id,
+            id: ref.id,
             punti: 0,
-            storico: [],
-            dataInizio: null
-        };
+            storico: []
+        });
 
-        let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
-        lista.push(cliente);
-        localStorage.setItem("clienti", JSON.stringify(lista));
-
-        mostraTessera(cliente);
+        mostraTessera({
+            nome: nome,
+            cognome: cognome,
+            id: ref.id,
+            punti: 0,
+            storico: []
+        });
     }
 
-    function accediTessera() {
+    // ACCESSO TESSERA
+    async function accediTessera() {
         let id = document.getElementById("codice-tessera").value.trim();
-        let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
+        const ref = doc(db, "clienti", id);
+        const snap = await getDoc(ref);
 
-        let cliente = lista.find(c => c.id === id);
-
-        if (!cliente) {
+        if (!snap.exists()) {
             alert("ID non trovato");
             return;
         }
 
-        mostraTessera(cliente);
+        mostraTessera(snap.data());
     }
 
+    // MOSTRA TESSERA
     function mostraTessera(cliente) {
         document.querySelectorAll(".container").forEach(c => c.style.display = "none");
         document.getElementById("tessera").style.display = "block";
 
         document.getElementById("nome-salvato").textContent = cliente.nome;
         document.getElementById("cognome-salvato").textContent = cliente.cognome;
-
         document.getElementById("id-tessera-top").textContent = cliente.id;
-
         document.getElementById("punti").textContent = cliente.punti;
 
         caricaStorico(cliente);
-        aggiornaConto(cliente);
     }
 
-    function aggiungiPunto() {
+    // AGGIUNGI PUNTO
+    async function aggiungiPunto() {
         let codice = document.getElementById("codice").value.trim();
         let id = document.getElementById("id-tessera-top").textContent;
 
-        let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
-        let cliente = lista.find(c => c.id === id);
-
-        if (!cliente) return;
-
-        if (codice === codiceSegreto) {
-            cliente.punti++;
-            cliente.storico.push({ punti: 1, data: new Date().toLocaleString() });
-
-            if (!cliente.dataInizio) cliente.dataInizio = Date.now();
-
-            localStorage.setItem("clienti", JSON.stringify(lista));
-
-            mostraTessera(cliente);
-
-        } else if (codice === codiceReset) {
-            cliente.punti = 0;
-            cliente.storico = [];
-            cliente.dataInizio = null;
-
-            localStorage.setItem("clienti", JSON.stringify(lista));
-
-            mostraTessera(cliente);
-
-        } else {
+        if (codice !== codiceSegreto) {
             alert("Codice errato");
+            return;
         }
 
-        document.getElementById("codice").value = "";
+        const ref = doc(db, "clienti", id);
+
+        await updateDoc(ref, {
+            punti: increment(1),
+            storico: arrayUnion({
+                punti: 1,
+                data: new Date().toLocaleString()
+            })
+        });
+
+        const snap = await getDoc(ref);
+        mostraTessera(snap.data());
     }
 
+    // STORICO
     function caricaStorico(cliente) {
         let tabella = document.getElementById("storico-punti");
         tabella.innerHTML = "";
@@ -272,23 +269,6 @@
         });
     }
 
-    function aggiornaConto(cliente) {
-        if (!cliente.dataInizio) {
-            document.getElementById("conto-alla-rovescia").textContent = "N/A";
-            return;
-        }
-
-        let scadenza = cliente.dataInizio + (365 * 24 * 60 * 60 * 1000);
-        let diff = scadenza - Date.now();
-
-        if (diff <= 0) {
-            document.getElementById("conto-alla-rovescia").textContent = "Tempo scaduto";
-            return;
-        }
-
-        let giorni = Math.floor(diff / 86400000);
-        document.getElementById("conto-alla-rovescia").textContent = giorni + " giorni rimanenti";
-    }
 </script>
 
 </body>
