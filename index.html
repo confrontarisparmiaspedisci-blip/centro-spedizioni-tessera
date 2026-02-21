@@ -23,6 +23,14 @@
             box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
         }
 
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
         input, button {
             padding: 10px;
             margin: 8px 0;
@@ -30,6 +38,7 @@
             font-size: 16px;
             border-radius: 6px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
         }
 
         button {
@@ -56,6 +65,7 @@
         #barcode {
             width: 200px;
             margin-top: 10px;
+            alt: "Codice barcode della tessera";
         }
 
         .storico-item {
@@ -64,53 +74,78 @@
             margin: 5px 0;
             border-radius: 6px;
         }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
     </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h2>Tessera Punti Digitale</h2>
+<main>
+    <div class="container">
+        <h2>Tessera Punti Digitale</h2>
 
-    <button onclick="mostraNuova()">Nuova Tessera</button>
-    <button onclick="mostraAccesso()">Accedi con ID Tessera</button>
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
 
-    <div id="nuova" style="display:none;">
-        <h3>Crea nuova tessera</h3>
-        <input type="text" id="nome" placeholder="Nome">
-        <input type="text" id="cognome" placeholder="Cognome">
-        <button onclick="creaTessera()">Crea Tessera</button>
+        <button onclick="mostraNuova()">Nuova Tessera</button>
+        <button onclick="mostraAccesso()">Accedi con ID Tessera</button>
+
+        <div id="nuova" style="display:none;">
+            <h3>Crea nuova tessera</h3>
+            <label for="nome">Nome</label>
+            <input type="text" id="nome" placeholder="Inserisci il tuo nome">
+            
+            <label for="cognome">Cognome</label>
+            <input type="text" id="cognome" placeholder="Inserisci il tuo cognome">
+            
+            <button onclick="creaTessera()">Crea Tessera</button>
+        </div>
+
+        <div id="accesso" style="display:none;">
+            <h3>Accedi alla tua tessera</h3>
+            <label for="idAccesso">ID Tessera</label>
+            <input type="text" id="idAccesso" placeholder="Inserisci il tuo ID Tessera">
+            
+            <button onclick="accedi()">Accedi</button>
+        </div>
     </div>
 
-    <div id="accesso" style="display:none;">
-        <h3>Accedi alla tua tessera</h3>
-        <input type="text" id="idAccesso" placeholder="ID Tessera">
-        <button onclick="accedi()">Accedi</button>
+    <div id="tessera">
+        <h3 id="nomeCompleto"></h3>
+        <p><strong>ID:</strong> <span id="idTessera"></span></p>
+        <p><strong>Punti:</strong> <span id="punti"></span></p>
+
+        <img id="barcode" src="barcode1.jpg" alt="Codice barcode della tessera punti">
+
+        <h4>Storico</h4>
+        <div id="storico"></div>
+
+        <button onclick="tornaHome()">Torna alla Home</button>
     </div>
-</div>
-
-<div id="tessera">
-    <h3 id="nomeCompleto"></h3>
-    <p><strong>ID:</strong> <span id="idTessera"></span></p>
-    <p><strong>Punti:</strong> <span id="punti"></span></p>
-
-    <img id="barcode" src="barcode1.jpg">
-
-    <h4>Storico</h4>
-    <div id="storico"></div>
-
-    <button onclick="tornaHome()">Torna alla Home</button>
-</div>
+</main>
 
 <script type="module">
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-        getFirestore, collection, doc, setDoc, getDoc 
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+    // Configurazione Firebase - USA VARIABILI D'AMBIENTE IN PRODUZIONE
     const firebaseConfig = {
-        apiKey: "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
+        apiKey: process.env.FIREBASE_API_KEY || "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
         authDomain: "tessera-punti.firebaseapp.com",
         projectId: "tessera-punti",
         storageBucket: "tessera-punti.firebasestorage.app",
@@ -119,8 +154,35 @@
         measurementId: "G-0STSVW8R8P"
     };
 
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, doc, setDoc, getDoc 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
+    // Funzioni di notifica
+    function mostraErrore(messaggio) {
+        const errorDiv = document.getElementById("errorMsg");
+        errorDiv.textContent = messaggio;
+        errorDiv.style.display = "block";
+        setTimeout(() => { errorDiv.style.display = "none"; }, 5000);
+    }
+
+    function mostraSuccesso(messaggio) {
+        const successDiv = document.getElementById("successMsg");
+        successDiv.textContent = messaggio;
+        successDiv.style.display = "block";
+        setTimeout(() => { successDiv.style.display = "none"; }, 5000);
+    }
+
+    // Sanificazione input per prevenire XSS
+    function sanificaInput(testo) {
+        const div = document.createElement("div");
+        div.textContent = testo;
+        return div.innerHTML;
+    }
 
     function mostraNuova() {
         document.getElementById("nuova").style.display = "block";
@@ -139,58 +201,89 @@
 
     // CREA TESSERA
     async function creaTessera() {
-        let nome = document.getElementById("nome").value.trim();
-        let cognome = document.getElementById("cognome").value.trim();
+        try {
+            let nome = document.getElementById("nome").value.trim();
+            let cognome = document.getElementById("cognome").value.trim();
 
-        if (!nome || !cognome) {
-            alert("Inserisci nome e cognome");
-            return;
+            if (!nome || !cognome) {
+                mostraErrore("⚠️ Inserisci nome e cognome");
+                return;
+            }
+
+            if (nome.length < 2 || cognome.length < 2) {
+                mostraErrore("⚠️ Nome e cognome devono contenere almeno 2 caratteri");
+                return;
+            }
+
+            let id = "TS" + Math.floor(Math.random() * 1000000000);
+
+            await setDoc(doc(db, "clienti", id), {
+                id: id,
+                nome: sanificaInput(nome),
+                cognome: sanificaInput(cognome),
+                punti: 0,
+                storico: [],
+                dataCreazone: new Date().toLocaleString()
+            });
+
+            mostraSuccesso(`✅ Tessera creata! ID: ${id}`);
+            document.getElementById("nome").value = "";
+            document.getElementById("cognome").value = "";
+        } catch (error) {
+            console.error("Errore durante la creazione della tessera:", error);
+            mostraErrore("❌ Errore nella creazione della tessera. Riprova più tardi.");
         }
-
-        let id = "TS" + Math.floor(Math.random() * 1000000000);
-
-        await setDoc(doc(db, "clienti", id), {
-            id: id,
-            nome: nome,
-            cognome: cognome,
-            punti: 0,
-            storico: []
-        });
-
-        alert("Tessera creata! ID: " + id);
     }
 
     // ACCEDI ALLA TESSERA
     async function accedi() {
-        let id = document.getElementById("idAccesso").value.trim();
-        if (!id) return alert("Inserisci un ID valido");
+        try {
+            let id = document.getElementById("idAccesso").value.trim();
+            
+            if (!id) {
+                mostraErrore("⚠️ Inserisci un ID valido");
+                return;
+            }
 
-        const ref = doc(db, "clienti", id);
-        const snap = await getDoc(ref);
+            const ref = doc(db, "clienti", id);
+            const snap = await getDoc(ref);
 
-        if (!snap.exists()) {
-            alert("ID non trovato");
-            return;
+            if (!snap.exists()) {
+                mostraErrore("❌ ID non trovato nel sistema");
+                return;
+            }
+
+            let c = snap.data();
+
+            // Uso di textContent per sicurezza XSS
+            document.getElementById("nomeCompleto").textContent = c.nome + " " + c.cognome;
+            document.getElementById("idTessera").textContent = c.id;
+            document.getElementById("punti").textContent = c.punti;
+
+            let storicoDiv = document.getElementById("storico");
+            storicoDiv.innerHTML = "";
+
+            if (c.storico && c.storico.length > 0) {
+                c.storico.forEach(s => {
+                    let div = document.createElement("div");
+                    div.className = "storico-item";
+                    div.textContent = `+${s.punti} punti — ${s.data}`;
+                    storicoDiv.appendChild(div);
+                });
+            } else {
+                let div = document.createElement("div");
+                div.className = "storico-item";
+                div.textContent = "Nessun movimento";
+                storicoDiv.appendChild(div);
+            }
+
+            document.querySelector(".container").style.display = "none";
+            document.getElementById("tessera").style.display = "block";
+            mostraSuccesso("✅ Accesso riuscito!");
+        } catch (error) {
+            console.error("Errore durante l'accesso:", error);
+            mostraErrore("❌ Errore nella lettura dei dati. Riprova.");
         }
-
-        let c = snap.data();
-
-        document.getElementById("nomeCompleto").innerText = c.nome + " " + c.cognome;
-        document.getElementById("idTessera").innerText = c.id;
-        document.getElementById("punti").innerText = c.punti;
-
-        let storicoDiv = document.getElementById("storico");
-        storicoDiv.innerHTML = "";
-
-        c.storico.forEach(s => {
-            let div = document.createElement("div");
-            div.className = "storico-item";
-            div.innerText = `+${s.punti} punti — ${s.data}`;
-            storicoDiv.appendChild(div);
-        });
-
-        document.querySelector(".container").style.display = "none";
-        document.getElementById("tessera").style.display = "block";
     }
 
 </script>
