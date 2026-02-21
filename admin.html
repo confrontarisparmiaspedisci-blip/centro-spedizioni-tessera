@@ -18,9 +18,17 @@
             padding: 20px;
             border-radius: 8px;
             width: 95%;
-            max-width: 700px;
+            max-width: 900px;
             margin: auto;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
         }
 
         input, button {
@@ -30,6 +38,7 @@
             font-size: 16px;
             border-radius: 6px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
         }
 
         button {
@@ -44,6 +53,24 @@
             background: #0056b3;
         }
 
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-container input {
+            flex: 1;
+            margin: 0;
+        }
+
+        .search-container button {
+            flex: 0 0 auto;
+            width: auto;
+            padding: 10px 20px;
+            margin: 0;
+        }
+
         table {
             width: 100%;
             margin-top: 20px;
@@ -52,17 +79,29 @@
         }
 
         th, td {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
+            text-align: center;
         }
 
         th {
             background: #007BFF;
             color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:hover {
+            background: #f0f0f0;
         }
 
         .btn-red {
             background: #dc3545;
+            width: 100%;
+            margin: 2px 0;
         }
 
         .btn-red:hover {
@@ -71,49 +110,89 @@
 
         .btn-green {
             background: #28a745;
+            width: 100%;
+            margin: 2px 0;
         }
 
         .btn-green:hover {
             background: #1e7e34;
+        }
+
+        .btn-action {
+            width: 100%;
+            margin: 2px 0;
+            padding: 6px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
         }
     </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h2>Area Admin</h2>
+<main>
+    <div class="container">
+        <h2>Area Admin - Gestione Tessere</h2>
 
-    <input type="text" id="search" placeholder="Cerca per nome, cognome o ID">
-    <button onclick="cerca()">Cerca</button>
-    <button onclick="caricaTutti()">Mostra Tutti</button>
+        <div id="errorMsg" class="error"></div>
+        <div id="successMsg" class="success"></div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Cognome</th>
-                <th>ID</th>
-                <th>Punti</th>
-                <th>Azioni</th>
-            </tr>
-        </thead>
-        <tbody id="lista-clienti"></tbody>
-    </table>
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Cerca per nome, cognome o ID">
+            <button onclick="cerca()">Cerca</button>
+            <button onclick="caricaTutti()">Mostra Tutti</button>
+        </div>
 
-    <br>
-    <button onclick="window.location.href='index.html'">Torna al sito</button>
-</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Cognome</th>
+                    <th>ID</th>
+                    <th>Punti</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="lista-clienti">
+                <tr>
+                    <td colspan="5" class="no-data">Caricamento dati...</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <br>
+        <button onclick="window.location.href='index.html'">Torna al sito</button>
+    </div>
+</main>
 
 <script type="module">
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-        getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, arrayUnion, increment 
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+    // Configurazione Firebase - USA VARIABILI D'AMBIENTE IN PRODUZIONE
     const firebaseConfig = {
-        apiKey: "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
+        apiKey: process.env.FIREBASE_API_KEY || "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
         authDomain: "tessera-punti.firebaseapp.com",
         projectId: "tessera-punti",
         storageBucket: "tessera-punti.firebasestorage.app",
@@ -122,95 +201,191 @@
         measurementId: "G-0STSVW8R8P"
     };
 
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, arrayUnion, increment 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Funzioni di notifica
+    function mostraErrore(messaggio) {
+        const errorDiv = document.getElementById("errorMsg");
+        errorDiv.textContent = messaggio;
+        errorDiv.style.display = "block";
+        setTimeout(() => { errorDiv.style.display = "none"; }, 5000);
+    }
+
+    function mostraSuccesso(messaggio) {
+        const successDiv = document.getElementById("successMsg");
+        successDiv.textContent = messaggio;
+        successDiv.style.display = "block";
+        setTimeout(() => { successDiv.style.display = "none"; }, 5000);
+    }
+
     // CARICA TUTTI I CLIENTI
     async function caricaTutti() {
-        const querySnapshot = await getDocs(collection(db, "clienti"));
-        let tbody = document.getElementById("lista-clienti");
-        tbody.innerHTML = "";
+        try {
+            const querySnapshot = await getDocs(collection(db, "clienti"));
+            let tbody = document.getElementById("lista-clienti");
+            tbody.innerHTML = "";
 
-        querySnapshot.forEach(docSnap => {
-            let c = docSnap.data();
-            aggiungiRiga(c);
-        });
+            if (querySnapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">Nessuna tessera nel sistema</td></tr>';
+                return;
+            }
+
+            querySnapshot.forEach(docSnap => {
+                let c = docSnap.data();
+                aggiungiRiga(c);
+            });
+        } catch (error) {
+            console.error("Errore nel caricamento:", error);
+            mostraErrore("❌ Errore nel caricamento dei dati");
+        }
     }
 
     // CERCA CLIENTE
     async function cerca() {
-        let testo = document.getElementById("search").value.trim().toLowerCase();
-        if (testo === "") return caricaTutti();
-
-        const querySnapshot = await getDocs(collection(db, "clienti"));
-        let tbody = document.getElementById("lista-clienti");
-        tbody.innerHTML = "";
-
-        querySnapshot.forEach(docSnap => {
-            let c = docSnap.data();
-            if (
-                c.nome.toLowerCase().includes(testo) ||
-                c.cognome.toLowerCase().includes(testo) ||
-                c.id.toLowerCase().includes(testo)
-            ) {
-                aggiungiRiga(c);
+        try {
+            let testo = document.getElementById("search").value.trim().toLowerCase();
+            if (testo === "") {
+                caricaTutti();
+                return;
             }
-        });
+
+            const querySnapshot = await getDocs(collection(db, "clienti"));
+            let tbody = document.getElementById("lista-clienti");
+            tbody.innerHTML = "";
+
+            let trovati = 0;
+            querySnapshot.forEach(docSnap => {
+                let c = docSnap.data();
+                if (
+                    (c.nome && c.nome.toLowerCase().includes(testo)) ||
+                    (c.cognome && c.cognome.toLowerCase().includes(testo)) ||
+                    (c.id && c.id.toLowerCase().includes(testo))
+                ) {
+                    aggiungiRiga(c);
+                    trovati++;
+                }
+            });
+
+            if (trovati === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="no-data">Nessun risultato trovato</td></tr>';
+            }
+        } catch (error) {
+            console.error("Errore nella ricerca:", error);
+            mostraErrore("❌ Errore nella ricerca");
+        }
     }
 
-    // AGGIUNGE UNA RIGA IN TABELLA
+    // AGGIUNGE UNA RIGA IN TABELLA (CON PROTEZIONE XSS)
     function aggiungiRiga(c) {
         let tbody = document.getElementById("lista-clienti");
 
         let tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${c.nome}</td>
-            <td>${c.cognome}</td>
-            <td>${c.id}</td>
-            <td>${c.punti}</td>
-            <td>
-                <button class="btn-green" onclick="aggiungiPunto('${c.id}')">+1</button>
-                <button class="btn-red" onclick="azzera('${c.id}')">Reset</button>
-                <button onclick="elimina('${c.id}')">Elimina</button>
-            </td>
-        `;
+        
+        // Creazione celle sicure usando textContent
+        let tdNome = document.createElement("td");
+        tdNome.textContent = c.nome || "N/A";
+        
+        let tdCognome = document.createElement("td");
+        tdCognome.textContent = c.cognome || "N/A";
+        
+        let tdId = document.createElement("td");
+        tdId.textContent = c.id || "N/A";
+        
+        let tdPunti = document.createElement("td");
+        tdPunti.textContent = c.punti || 0;
+        
+        // Cella azioni con pulsanti
+        let tdAzioni = document.createElement("td");
+        
+        let btnAggiungi = document.createElement("button");
+        btnAggiungi.className = "btn-green btn-action";
+        btnAggiungi.textContent = "+1 Punto";
+        btnAggiungi.onclick = () => aggiungiPunto(c.id);
+        
+        let btnAzzera = document.createElement("button");
+        btnAzzera.className = "btn-red btn-action";
+        btnAzzera.textContent = "Reset";
+        btnAzzera.onclick = () => azzera(c.id);
+        
+        let btnElimina = document.createElement("button");
+        btnElimina.className = "btn-action";
+        btnElimina.style.background = "#6c757d";
+        btnElimina.textContent = "Elimina";
+        btnElimina.onclick = () => elimina(c.id);
+        
+        tdAzioni.appendChild(btnAggiungi);
+        tdAzioni.appendChild(btnAzzera);
+        tdAzioni.appendChild(btnElimina);
+        
+        tr.appendChild(tdNome);
+        tr.appendChild(tdCognome);
+        tr.appendChild(tdId);
+        tr.appendChild(tdPunti);
+        tr.appendChild(tdAzioni);
 
         tbody.appendChild(tr);
     }
 
     // AGGIUNGI PUNTO
-    window.aggiungiPunto = async function(id) {
-        const ref = doc(db, "clienti", id);
+    async function aggiungiPunto(id) {
+        try {
+            const ref = doc(db, "clienti", id);
 
-        await updateDoc(ref, {
-            punti: increment(1),
-            storico: arrayUnion({
-                punti: 1,
-                data: new Date().toLocaleString()
-            })
-        });
+            await updateDoc(ref, {
+                punti: increment(1),
+                storico: arrayUnion({
+                    punti: 1,
+                    data: new Date().toLocaleString()
+                })
+            });
 
-        caricaTutti();
+            mostraSuccesso("✅ Punto aggiunto");
+            caricaTutti();
+        } catch (error) {
+            console.error("Errore nell'aggiunta del punto:", error);
+            mostraErrore("❌ Errore nell'aggiunta del punto");
+        }
     }
 
     // RESET PUNTI
-    window.azzera = async function(id) {
-        const ref = doc(db, "clienti", id);
+    async function azzera(id) {
+        try {
+            if (!confirm("⚠️ Sei sicuro di voler resettare i punti di questa tessera?")) return;
 
-        await updateDoc(ref, {
-            punti: 0,
-            storico: []
-        });
+            const ref = doc(db, "clienti", id);
 
-        caricaTutti();
+            await updateDoc(ref, {
+                punti: 0,
+                storico: []
+            });
+
+            mostraSuccesso("✅ Punti resettati");
+            caricaTutti();
+        } catch (error) {
+            console.error("Errore nel reset:", error);
+            mostraErrore("❌ Errore nel reset dei punti");
+        }
     }
 
     // ELIMINA CLIENTE
-    window.elimina = async function(id) {
-        if (!confirm("Sei sicuro di voler eliminare questa tessera?")) return;
+    async function elimina(id) {
+        try {
+            if (!confirm("⚠️ Sei sicuro di voler eliminare questa tessera? Questa azione non può essere annullata!")) return;
 
-        await deleteDoc(doc(db, "clienti", id));
-        caricaTutti();
+            await deleteDoc(doc(db, "clienti", id));
+
+            mostraSuccesso("✅ Tessera eliminata");
+            caricaTutti();
+        } catch (error) {
+            console.error("Errore nell'eliminazione:", error);
+            mostraErrore("❌ Errore nell'eliminazione della tessera");
+        }
     }
 
     // CARICA SUBITO ALL'AVVIO
