@@ -143,9 +143,14 @@
 
 <script type="module">
 
-    // Configurazione Firebase - USA VARIABILI D'AMBIENTE IN PRODUZIONE
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, doc, setDoc, getDoc 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Configurazione Firebase
     const firebaseConfig = {
-        apiKey: process.env.FIREBASE_API_KEY || "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
+        apiKey: "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
         authDomain: "tessera-punti.firebaseapp.com",
         projectId: "tessera-punti",
         storageBucket: "tessera-punti.firebasestorage.app",
@@ -153,11 +158,6 @@
         appId: "1:1093156020505:web:1a693de1df1cd6eef92588",
         measurementId: "G-0STSVW8R8P"
     };
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-        getFirestore, collection, doc, setDoc, getDoc 
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -184,23 +184,23 @@
         return div.innerHTML;
     }
 
-    function mostraNuova() {
+    window.mostraNuova = function() {
         document.getElementById("nuova").style.display = "block";
         document.getElementById("accesso").style.display = "none";
     }
 
-    function mostraAccesso() {
+    window.mostraAccesso = function() {
         document.getElementById("nuova").style.display = "none";
         document.getElementById("accesso").style.display = "block";
     }
 
-    function tornaHome() {
+    window.tornaHome = function() {
         document.getElementById("tessera").style.display = "none";
         document.querySelector(".container").style.display = "block";
     }
 
     // CREA TESSERA
-    async function creaTessera() {
+    window.creaTessera = async function() {
         try {
             let nome = document.getElementById("nome").value.trim();
             let cognome = document.getElementById("cognome").value.trim();
@@ -236,7 +236,7 @@
     }
 
     // ACCEDI ALLA TESSERA
-    async function accedi() {
+    window.accedi = async function() {
         try {
             let id = document.getElementById("idAccesso").value.trim();
             
