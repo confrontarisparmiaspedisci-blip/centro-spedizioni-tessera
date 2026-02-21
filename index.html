@@ -12,6 +12,7 @@
             background-color: #f4f4f4;
             padding: 20px;
         }
+
         .container {
             background: white;
             padding: 20px;
@@ -20,43 +21,61 @@
             width: 90%;
             max-width: 450px;
             margin: auto;
+            margin-bottom: 25px;
         }
+
         input, button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 10px 0;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 16px;
         }
+
         button {
             background: #007BFF;
             color: white;
             cursor: pointer;
             border: none;
+            font-weight: bold;
         }
+
         button:hover {
             background: #0056b3;
         }
-        #punti, #conto-alla-rovescia {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 20px;
+
+        .btn-admin {
+            background: #28a745;
         }
+
+        .btn-admin:hover {
+            background: #1e7e34;
+        }
+
+        #punti, #conto-alla-rovescia {
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
         table {
             width: 100%;
             margin-top: 20px;
             border-collapse: collapse;
             background: white;
         }
+
         th, td {
             padding: 10px;
             border: 1px solid #ccc;
         }
+
         th {
             background: #007BFF;
             color: white;
         }
+
         #barcode-img {
             width: 100%;
             max-width: 250px;
@@ -67,42 +86,46 @@
 
 <body>
 
+<!-- MENU INIZIALE -->
 <div class="container" id="menu-iniziale">
     <h2>Tessera Punti Digitale</h2>
 
     <button onclick="mostraRegistrazione()">Nuova Tessera</button>
-    <button onclick="mostraAccesso()">Codice Tessera</button>
+    <button onclick="mostraAccesso()">Accedi con ID Tessera</button>
 </div>
 
+<!-- REGISTRAZIONE NUOVA TESSERA -->
 <div class="container" id="registrazione" style="display: none;">
-    <h2>Nuova Tessera</h2>
+    <h2>Crea Nuova Tessera</h2>
 
     <input type="text" id="nome" placeholder="Nome">
     <input type="text" id="cognome" placeholder="Cognome">
 
     <button onclick="salvaNuovaTessera()">Crea Tessera</button>
+    <button onclick="tornaMenu()">Indietro</button>
 </div>
 
+<!-- ACCESSO TESSERA ESISTENTE -->
 <div class="container" id="accesso" style="display: none;">
     <h2>Accedi alla Tessera</h2>
 
     <input type="text" id="codice-tessera" placeholder="Inserisci ID tessera">
     <button onclick="accediTessera()">Accedi</button>
+    <button onclick="tornaMenu()">Indietro</button>
 </div>
 
+<!-- PAGINA TESSERA -->
 <div class="container" id="tessera" style="display: none;">
-    <h3>Benvenuto, <span id="nome-salvato"></span> <span id="cognome-salvato"></span>!</h3>
+    <h3>Benvenuto, <span id="nome-salvato"></span> <span id="cognome-salvato"></span></h3>
 
     <img id="barcode-img" src="Tessera Punti Biglietto da Visita.png">
-
-    <p id="id-tessera" style="font-size: 22px; font-weight: bold; margin-top: 10px;"></p>
 
     <h3>ID Tessera: <span id="id-tessera-top"></span></h3>
 
     <h3>Punti Accumulati</h3>
     <p id="punti">0</p>
 
-    <input type="text" id="codice" placeholder="Inserisci codice">
+    <input type="text" id="codice" placeholder="Inserisci codice segreto">
     <button onclick="aggiungiPunto()">Aggiungi Punto</button>
 
     <h3>Tempo Rimanente</h3>
@@ -120,10 +143,8 @@
     </table>
 
     <br>
-    <button onclick="window.location.href='admin.html'" 
-            style="background:#28a745; color:white; padding:12px; border:none; border-radius:6px; font-size:18px; cursor:pointer;">
-        Area Admin
-    </button>
+    <button class="btn-admin" onclick="window.location.href='admin.html'">Area Admin</button>
+    <button onclick="tornaMenu()">Esci</button>
 </div>
 
 <script>
@@ -132,6 +153,11 @@
 
     function generaID() {
         return Math.random().toString(36).substring(2, 7);
+    }
+
+    function tornaMenu() {
+        document.querySelectorAll(".container").forEach(c => c.style.display = "none");
+        document.getElementById("menu-iniziale").style.display = "block";
     }
 
     function mostraRegistrazione() {
@@ -186,15 +212,12 @@
     }
 
     function mostraTessera(cliente) {
-        document.getElementById("menu-iniziale").style.display = "none";
-        document.getElementById("registrazione").style.display = "none";
-        document.getElementById("accesso").style.display = "none";
+        document.querySelectorAll(".container").forEach(c => c.style.display = "none");
         document.getElementById("tessera").style.display = "block";
 
         document.getElementById("nome-salvato").textContent = cliente.nome;
         document.getElementById("cognome-salvato").textContent = cliente.cognome;
 
-        document.getElementById("id-tessera").textContent = cliente.id;
         document.getElementById("id-tessera-top").textContent = cliente.id;
 
         document.getElementById("punti").textContent = cliente.punti;
@@ -205,7 +228,7 @@
 
     function aggiungiPunto() {
         let codice = document.getElementById("codice").value.trim();
-        let id = document.getElementById("id-tessera").textContent;
+        let id = document.getElementById("id-tessera-top").textContent;
 
         let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
         let cliente = lista.find(c => c.id === id);
