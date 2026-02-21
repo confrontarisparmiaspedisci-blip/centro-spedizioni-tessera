@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Area Admin</title>
+    <title>Area Admin - Tessere Punti</title>
 
     <style>
         body {
@@ -12,147 +12,210 @@
             padding: 20px;
             text-align: center;
         }
+
         .container {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            width: 90%;
-            max-width: 500px;
+            width: 95%;
+            max-width: 700px;
             margin: auto;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
         }
+
         input, button {
-            width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #ccc;
+            margin: 8px 0;
+            width: 100%;
             font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
         }
+
         button {
             background: #007BFF;
             color: white;
-            border: none;
             cursor: pointer;
+            border: none;
+            font-weight: bold;
         }
+
         button:hover {
             background: #0056b3;
         }
+
         table {
             width: 100%;
             margin-top: 20px;
             border-collapse: collapse;
+            background: white;
         }
+
         th, td {
             padding: 10px;
             border: 1px solid #ccc;
         }
+
         th {
             background: #007BFF;
             color: white;
         }
-        .delete-btn {
+
+        .btn-red {
             background: #dc3545;
         }
-        .admin-btn {
+
+        .btn-red:hover {
+            background: #a71d2a;
+        }
+
+        .btn-green {
             background: #28a745;
+        }
+
+        .btn-green:hover {
+            background: #1e7e34;
         }
     </style>
 </head>
 
 <body>
 
-<div class="container" id="admin-login">
-    <h2>Accesso Admin</h2>
-    <input type="password" id="admin-pass" placeholder="Password Admin">
-    <button onclick="loginAdmin()">Entra</button>
-</div>
+<div class="container">
+    <h2>Area Admin</h2>
 
-<div class="container" id="admin-panel" style="display:none;">
-    <h2>Gestione Clienti</h2>
+    <input type="text" id="search" placeholder="Cerca per nome, cognome o ID">
+    <button onclick="cerca()">Cerca</button>
+    <button onclick="caricaTutti()">Mostra Tutti</button>
 
     <table>
         <thead>
             <tr>
                 <th>Nome</th>
+                <th>Cognome</th>
                 <th>ID</th>
                 <th>Punti</th>
                 <th>Azioni</th>
             </tr>
         </thead>
-        <tbody id="admin-lista"></tbody>
+        <tbody id="lista-clienti"></tbody>
     </table>
 
-    <button onclick="logoutAdmin()" class="delete-btn">Esci</button>
+    <br>
+    <button onclick="window.location.href='index.html'">Torna al sito</button>
 </div>
 
-<script>
-const adminPassword = "admin123";
+<script type="module">
 
-function loginAdmin() {
-    let pass = document.getElementById("admin-pass").value;
-    if (pass === adminPassword) {
-        document.getElementById("admin-login").style.display = "none";
-        document.getElementById("admin-panel").style.display = "block";
-        caricaAdmin();
-    } else {
-        alert("Password errata");
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, arrayUnion, increment 
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC4zVOTBEFdO3SSDtfyPSEUBlXk-VljFKw",
+        authDomain: "tessera-punti.firebaseapp.com",
+        projectId: "tessera-punti",
+        storageBucket: "tessera-punti.firebasestorage.app",
+        messagingSenderId: "1093156020505",
+        appId: "1:1093156020505:web:1a693de1df1cd6eef92588",
+        measurementId: "G-0STSVW8R8P"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // CARICA TUTTI I CLIENTI
+    async function caricaTutti() {
+        const querySnapshot = await getDocs(collection(db, "clienti"));
+        let tbody = document.getElementById("lista-clienti");
+        tbody.innerHTML = "";
+
+        querySnapshot.forEach(docSnap => {
+            let c = docSnap.data();
+            aggiungiRiga(c);
+        });
     }
-}
 
-function logoutAdmin() {
-    document.getElementById("admin-panel").style.display = "none";
-    document.getElementById("admin-login").style.display = "block";
-}
+    // CERCA CLIENTE
+    async function cerca() {
+        let testo = document.getElementById("search").value.trim().toLowerCase();
+        if (testo === "") return caricaTutti();
 
-function caricaAdmin() {
-    let lista = JSON.parse(localStorage.getItem("clienti") || "[]");
-    let tab = document.getElementById("admin-lista");
-    tab.innerHTML = "";
+        const querySnapshot = await getDocs(collection(db, "clienti"));
+        let tbody = document.getElementById("lista-clienti");
+        tbody.innerHTML = "";
 
-    lista.forEach((c, i) => {
-        let r = document.createElement("tr");
-        r.innerHTML = `
+        querySnapshot.forEach(docSnap => {
+            let c = docSnap.data();
+            if (
+                c.nome.toLowerCase().includes(testo) ||
+                c.cognome.toLowerCase().includes(testo) ||
+                c.id.toLowerCase().includes(testo)
+            ) {
+                aggiungiRiga(c);
+            }
+        });
+    }
+
+    // AGGIUNGE UNA RIGA IN TABELLA
+    function aggiungiRiga(c) {
+        let tbody = document.getElementById("lista-clienti");
+
+        let tr = document.createElement("tr");
+        tr.innerHTML = `
             <td>${c.nome}</td>
+            <td>${c.cognome}</td>
             <td>${c.id}</td>
             <td>${c.punti}</td>
             <td>
-                <button onclick="adminAggiungi(${i})">+1</button>
-                <button onclick="adminReset(${i})" class="delete-btn">Reset</button>
-                <button onclick="adminElimina(${i})" class="delete-btn">X</button>
+                <button class="btn-green" onclick="aggiungiPunto('${c.id}')">+1</button>
+                <button class="btn-red" onclick="azzera('${c.id}')">Reset</button>
+                <button onclick="elimina('${c.id}')">Elimina</button>
             </td>
         `;
-        tab.appendChild(r);
-    });
-}
 
-function adminAggiungi(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    lista[i].punti++;
-    salvaClienti(lista);
-    caricaAdmin();
-}
-
-function adminReset(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    lista[i].punti = 0;
-    lista[i].storico = [];
-    salvaClienti(lista);
-    caricaAdmin();
-}
-
-function adminElimina(i) {
-    let lista = JSON.parse(localStorage.getItem("clienti"));
-    if (confirm("Eliminare questo cliente?")) {
-        lista.splice(i, 1);
-        salvaClienti(lista);
-        caricaAdmin();
+        tbody.appendChild(tr);
     }
-}
 
-function salvaClienti(lista) {
-    localStorage.setItem("clienti", JSON.stringify(lista));
-}
+    // AGGIUNGI PUNTO
+    window.aggiungiPunto = async function(id) {
+        const ref = doc(db, "clienti", id);
+
+        await updateDoc(ref, {
+            punti: increment(1),
+            storico: arrayUnion({
+                punti: 1,
+                data: new Date().toLocaleString()
+            })
+        });
+
+        caricaTutti();
+    }
+
+    // RESET PUNTI
+    window.azzera = async function(id) {
+        const ref = doc(db, "clienti", id);
+
+        await updateDoc(ref, {
+            punti: 0,
+            storico: []
+        });
+
+        caricaTutti();
+    }
+
+    // ELIMINA CLIENTE
+    window.elimina = async function(id) {
+        if (!confirm("Sei sicuro di voler eliminare questa tessera?")) return;
+
+        await deleteDoc(doc(db, "clienti", id));
+        caricaTutti();
+    }
+
+    // CARICA SUBITO ALL'AVVIO
+    caricaTutti();
+
 </script>
 
 </body>
